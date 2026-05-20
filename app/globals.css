@@ -19,7 +19,7 @@
   --color-x: #ffffff;
 }
 
-[data-theme='light'] {
+html[data-theme='light'] {
   --bg-primary: #f4f4f7;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
@@ -37,12 +37,12 @@
   --color-x: #0f0f15;
 }
 
-[data-theme='light'] .glass {
+html[data-theme='light'] .glass {
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
 }
 
-[data-theme='light'] .glass-hover:hover {
+html[data-theme='light'] .glass-hover:hover {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
