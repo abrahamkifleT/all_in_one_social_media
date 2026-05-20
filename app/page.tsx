@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { getPosts, getPostsByDate } from '@/lib/storage';
 import { Post, PlatformId } from '@/lib/types';
 import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
@@ -17,13 +18,17 @@ function toYMD(d: Date) {
 }
 
 export default function Dashboard() {
+  const { data: session } = useSession();
+  const email = session?.user?.email || undefined;
   const [posts, setPosts] = useState<Post[]>([]);
   const [now] = useState(new Date());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  useEffect(() => { setPosts(getPosts()); }, []);
+  useEffect(() => {
+    setPosts(getPosts(email));
+  }, [email]);
 
   const todayStr = toYMD(now);
   const postDates = new Set(posts.map(p => (p.scheduledAt || p.publishedAt || p.createdAt).slice(0, 10)));
@@ -37,7 +42,7 @@ export default function Dashboard() {
   for (let d = 1; d <= daysInMonth; d++) cells.push({ date: toYMD(new Date(calYear, calMonth, d)), day: d, current: true });
   while (cells.length % 7 !== 0) { const extra = cells.length - daysInMonth - firstDay + 1; cells.push({ date: toYMD(new Date(calYear, calMonth + 1, extra)), day: extra, current: false }); }
 
-  const dayPosts = selectedDay ? getPostsByDate(selectedDay) : [];
+  const dayPosts = selectedDay ? getPostsByDate(selectedDay, email) : [];
   const published = posts.filter(p => p.status === 'published').length;
   const scheduled = posts.filter(p => p.status === 'scheduled').length;
   const failed = posts.filter(p => p.status === 'failed').length;

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { ApiKeys } from '@/lib/types';
 import { getApiKeys, saveApiKeys } from '@/lib/storage';
 import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
@@ -70,15 +71,19 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
 ];
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const email = session?.user?.email || undefined;
   const [keys, setKeys] = useState<ApiKeys>({});
   const [saved, setSaved] = useState(false);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('facebook');
 
-  useEffect(() => { setKeys(getApiKeys()); }, []);
+  useEffect(() => {
+    setKeys(getApiKeys(email));
+  }, [email]);
 
   const handleSave = () => {
-    saveApiKeys(keys);
+    saveApiKeys(keys, email);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

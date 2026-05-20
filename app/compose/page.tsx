@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import PlatformSelector from '@/components/PlatformSelector';
 import MediaUploader from '@/components/MediaUploader';
 import MetadataPanel from '@/components/MetadataPanel';
@@ -17,6 +18,8 @@ const emptyMeta: PostMetadata = { hashtags: [], mentions: [] };
 
 export default function ComposePage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const email = session?.user?.email || undefined;
   const [platforms, setPlatforms] = useState<PlatformId[]>([]);
   const [contentType, setContentType] = useState<ContentType>('text');
   const [text, setText] = useState('');
@@ -32,7 +35,7 @@ export default function ComposePage() {
     if (!canPost) return;
     setIsPosting(true);
     setResults(null);
-    const apiKeys = getApiKeys();
+    const apiKeys = getApiKeys(email);
     const postResults: { platform: string; success: boolean; message: string }[] = [];
 
     for (const pid of platforms) {
@@ -71,7 +74,7 @@ export default function ComposePage() {
       scheduledAt: metadata.scheduledAt,
       results: postResults.map(r => ({ platform: r.platform as PlatformId, success: r.success, error: r.success ? undefined : r.message })),
     };
-    savePost(post);
+    savePost(post, email);
     setResults(postResults);
     setIsPosting(false);
   };
@@ -82,7 +85,7 @@ export default function ComposePage() {
       platforms, contentType, textContent: text, media: media || undefined, metadata,
       status: 'draft', createdAt: new Date().toISOString(),
     };
-    savePost(post);
+    savePost(post, email);
     router.push('/history');
   };
 

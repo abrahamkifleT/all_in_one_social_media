@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
+import SessionProvider from '@/components/SessionProvider';
+import AppLayout from '@/components/AppLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -34,12 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}} />
       </head>
       <body className={inter.className}>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
-          <Sidebar />
-          <main style={{ flex: 1, marginLeft: 240, minHeight: '100vh', background: 'var(--bg-primary)' }}>
-            {children}
-          </main>
-        </div>
+        <SessionProvider>
+          <AppLayout>{children}</AppLayout>
+        </SessionProvider>
       </body>
     </html>
   );

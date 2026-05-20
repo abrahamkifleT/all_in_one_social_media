@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Post } from '@/lib/types';
 import { getPosts, deletePost } from '@/lib/storage';
 import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
@@ -12,12 +13,16 @@ const PLATFORM_COLORS: Record<string, string> = {
 type FilterStatus = 'all' | 'published' | 'scheduled' | 'draft' | 'failed';
 
 export default function HistoryPage() {
+  const { data: session } = useSession();
+  const email = session?.user?.email || undefined;
   const [posts, setPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => { setPosts(getPosts()); }, []);
+  useEffect(() => {
+    setPosts(getPosts(email));
+  }, [email]);
 
   const filtered = posts.filter(p => {
     const matchStatus = filter === 'all' || p.status === filter;
@@ -26,8 +31,8 @@ export default function HistoryPage() {
   });
 
   const handleDelete = (id: string) => {
-    deletePost(id);
-    setPosts(getPosts());
+    deletePost(id, email);
+    setPosts(getPosts(email));
   };
 
   const FILTERS: { id: FilterStatus; label: string; color: string }[] = [

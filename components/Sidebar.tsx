@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
 
 const NAV = [
@@ -23,6 +24,7 @@ const PLATFORM_NAMES: Record<string, string> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function Sidebar() {
       zIndex: 50,
     }}>
       {/* Logo */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
@@ -71,6 +73,51 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
+
+      {/* User Profile */}
+      {session?.user && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 10px',
+          background: 'var(--bg-elevated)',
+          borderRadius: 12,
+          marginBottom: 24,
+          border: '1px solid var(--border)'
+        }}>
+          {session.user.image ? (
+            <img
+              src={session.user.image}
+              alt={session.user.name || 'User'}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: 14
+            }}>
+              {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {session.user.name || 'User'}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {session.user.email}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 32 }}>
@@ -152,6 +199,33 @@ export default function Sidebar() {
             </>
           )}
         </button>
+        {session && (
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              background: 'rgba(239, 68, 68, 0.08)',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              transition: 'all 0.2s ease',
+            }}
+            className="glass-hover"
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Sign Out
+          </button>
+        )}
         <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', fontWeight: 500 }}>
           SocialHub v1.0 — Vercel Ready
         </div>
