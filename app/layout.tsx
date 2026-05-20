@@ -19,6 +19,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              const savedTheme = localStorage.getItem('theme');
+              if (savedTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+              } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+              }
+            } catch (e) {}
+          })();
+        `}} />
+      </head>
       <body className={inter.className}>
         <div style={{ display: 'flex', minHeight: '100vh' }}>
           <Sidebar />

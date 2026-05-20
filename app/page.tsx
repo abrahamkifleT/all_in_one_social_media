@@ -7,7 +7,7 @@ import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
 
 const PLATFORM_COLORS: Record<string, string> = {
   facebook: '#1877F2', instagram: '#E1306C', youtube: '#FF0000',
-  tiktok: '#69C9D0', linkedin: '#0A66C2', x: '#ffffff',
+  tiktok: '#69C9D0', linkedin: '#0A66C2', x: 'var(--color-x)',
 };
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];

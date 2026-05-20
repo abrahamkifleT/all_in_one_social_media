@@ -6,7 +6,7 @@ import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
 
 const PLATFORM_COLORS: Record<string, string> = {
   facebook:'#1877F2',instagram:'#E1306C',youtube:'#FF0000',
-  tiktok:'#69C9D0',linkedin:'#0A66C2',x:'#ffffff',
+  tiktok:'#69C9D0',linkedin:'#0A66C2',x:'var(--color-x)',
 };
 
 interface PlatformConfig {
@@ -58,7 +58,7 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     ],
   },
   {
-    id:'x', name:'X (Twitter)', color:'#ffffff',
+    id:'x', name:'X (Twitter)', color:'var(--color-x)',
     docsUrl:'https://developer.twitter.com/en/docs/twitter-api',
     fields:[
       { key:'x', label:'API Key', placeholder:'xxxxxxxxxxxxxxxxxxxxxx', hint:'From Twitter Developer Portal → Your App → Keys and Tokens' },

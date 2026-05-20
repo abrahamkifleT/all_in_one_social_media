@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PLATFORM_SVG_PATHS } from '@/lib/platforms';
@@ -13,7 +14,7 @@ const NAV = [
 const PLATFORMS = ['facebook', 'instagram', 'youtube', 'tiktok', 'linkedin', 'x'];
 const PLATFORM_COLORS: Record<string, string> = {
   facebook: '#1877F2', instagram: '#E1306C', youtube: '#FF0000',
-  tiktok: '#69C9D0', linkedin: '#0A66C2', x: '#ffffff',
+  tiktok: '#69C9D0', linkedin: '#0A66C2', x: 'var(--color-x)',
 };
 const PLATFORM_NAMES: Record<string, string> = {
   facebook: 'Facebook', instagram: 'Instagram', youtube: 'YouTube',
@@ -22,6 +23,24 @@ const PLATFORM_NAMES: Record<string, string> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('theme', nextTheme);
+  };
 
   return (
     <aside style={{
@@ -96,8 +115,44 @@ export default function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button
+          onClick={toggleTheme}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--border)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 600,
+            transition: 'all 0.2s ease',
+          }}
+          className="glass-hover"
+        >
+          {theme === 'dark' ? (
+            <>
+              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+              Light Mode
+            </>
+          ) : (
+            <>
+              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+              </svg>
+              Dark Mode
+            </>
+          )}
+        </button>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', fontWeight: 500 }}>
           SocialHub v1.0 — Vercel Ready
         </div>
       </div>

@@ -1,6 +1,6 @@
 export default function TermsOfService() {
   return (
-    <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px', fontFamily: 'var(--font-inter), system-ui, sans-serif', lineHeight: 1.7, color: 'var(--text-primary)' }}>
+    <article style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px', lineHeight: 1.7, color: 'var(--text-primary)' }}>
       <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>Terms of Service</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 32 }}>Last updated: May 20, 2026</p>
 
@@ -53,6 +53,6 @@ export default function TermsOfService() {
         <h2 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>10. Contact</h2>
         <p style={{ color: 'var(--text-secondary)' }}>For questions about these Terms, please contact us through the App's support channel.</p>
       </section>
-    </main>
+    </article>
   );
 }
