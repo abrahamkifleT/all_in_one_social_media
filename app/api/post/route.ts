@@ -196,7 +196,7 @@ async function postToTikTok(payload: PostPayload) {
           'Content-Range': `bytes 0-${fileSize - 1}/${fileSize}`,
           'Content-Type': mediaMime || 'video/mp4',
         },
-        body: mediaBuffer,
+        body: new Uint8Array(mediaBuffer),
       });
 
       if (!uploadRes.ok) return { success: false, message: 'TikTok file upload failed' };

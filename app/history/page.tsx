@@ -51,7 +51,7 @@ export default function HistoryPage() {
           {FILTERS.map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)}
               style={{
-                padding:'7px 14px', borderRadius:20, border:'none', cursor:'pointer',
+                padding:'7px 14px', borderRadius:20, cursor:'pointer',
                 fontFamily:'Inter,sans-serif', fontSize:12, fontWeight:600, transition:'all 0.2s',
                 background: filter===f.id ? `${f.color}22` : 'var(--bg-elevated)',
                 color: filter===f.id ? f.color : 'var(--text-muted)',
