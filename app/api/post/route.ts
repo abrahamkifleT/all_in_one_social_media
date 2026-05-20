@@ -157,15 +157,16 @@ async function postToTikTok(payload: PostPayload) {
     // VIDEO UPLOAD (Uses FILE_UPLOAD - no domain verification required)
     if (contentType === 'video') {
       // 1. Fetch media to get buffer and file size
-      let mediaBuffer: Uint8Array;
+      let mediaBuffer: ArrayBuffer;
       if (mediaUrl.startsWith('data:')) {
         const base64Data = mediaUrl.split(',')[1];
-        mediaBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
+        const nodeBuf = Buffer.from(base64Data, 'base64');
+        // Safely extract a proper ArrayBuffer (Buffer may share memory)
+        mediaBuffer = nodeBuf.buffer.slice(nodeBuf.byteOffset, nodeBuf.byteOffset + nodeBuf.byteLength) as ArrayBuffer;
       } else {
         const fetchRes = await fetch(mediaUrl);
         if (!fetchRes.ok) throw new Error('Failed to download media for TikTok');
-        const arrayBuffer = await fetchRes.arrayBuffer();
-        mediaBuffer = new Uint8Array(arrayBuffer);
+        mediaBuffer = await fetchRes.arrayBuffer();
       }
       const fileSize = mediaBuffer.byteLength;
 
