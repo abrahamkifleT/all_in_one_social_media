@@ -146,24 +146,97 @@ async function postToYouTube(payload: PostPayload) {
 
 // ── TIKTOK ────────────────────────────────────────────────────────────────────
 async function postToTikTok(payload: PostPayload) {
-  const { apiKeys, text, metadata, mediaUrl, mediaMime } = payload;
+  const { apiKeys, text, metadata, mediaUrl, mediaMime, contentType } = payload;
   const token = apiKeys.tiktok;
   if (!token) return { success: false, message: 'Missing TikTok Access Token' };
-  if (!mediaUrl) return { success: false, message: 'TikTok requires a video' };
+  if (!mediaUrl) return { success: false, message: 'TikTok requires media' };
 
   const caption = buildCaption(text, metadata.hashtags, metadata.mentions).slice(0, 2200);
+
   try {
-    const res = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
-      body: JSON.stringify({
-        post_info: { title: caption, privacy_level: 'PUBLIC_TO_EVERYONE', disable_duet: false, disable_comment: false, disable_stitch: false },
-        source_info: { source: 'FILE_UPLOAD', video_size: 0, chunk_size: 0, total_chunk_count: 1 },
-      }),
-    });
-    const data = await res.json();
-    if (data.data?.publish_id) return { success: true, message: `TikTok upload initiated. Publish ID: ${data.data.publish_id}` };
-    return { success: false, message: data.error?.message || 'TikTok post failed' };
+    // VIDEO UPLOAD (Uses FILE_UPLOAD - no domain verification required)
+    if (contentType === 'video') {
+      // 1. Fetch media to get buffer and file size
+      let mediaBuffer: Buffer;
+      if (mediaUrl.startsWith('data:')) {
+        const base64Data = mediaUrl.split(',')[1];
+        mediaBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        const fetchRes = await fetch(mediaUrl);
+        if (!fetchRes.ok) throw new Error('Failed to download media for TikTok');
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        mediaBuffer = Buffer.from(arrayBuffer);
+      }
+      const fileSize = mediaBuffer.length;
+
+      // 2. Initialize upload
+      const initRes = await fetch('https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({
+          source_info: { 
+            source: 'FILE_UPLOAD', 
+            video_size: fileSize, 
+            chunk_size: fileSize, 
+            total_chunk_count: 1 
+          },
+        }),
+      });
+      const initData = await initRes.json();
+      if (initData.error?.code !== 'ok') {
+        return { success: false, message: initData.error?.message || 'TikTok init failed' };
+      }
+      
+      const { upload_url, publish_id } = initData.data;
+
+      // 3. Put the actual file
+      const uploadRes = await fetch(upload_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Range': `bytes 0-${fileSize - 1}/${fileSize}`,
+          'Content-Type': mediaMime || 'video/mp4',
+        },
+        body: mediaBuffer,
+      });
+
+      if (!uploadRes.ok) return { success: false, message: 'TikTok file upload failed' };
+      return { success: true, message: `TikTok video sent to Inbox! Publish ID: ${publish_id}` };
+    } 
+    
+    // IMAGE/PHOTO UPLOAD (Requires PULL_FROM_URL - domain must be verified in TikTok Portal)
+    else if (contentType === 'image') {
+      if (mediaUrl.startsWith('data:')) {
+        return { success: false, message: 'TikTok photo upload requires a public URL, not a base64 data stream. Please host the image first.' };
+      }
+
+      const initRes = await fetch('https://open.tiktokapis.com/v2/post/publish/content/init/', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({
+          post_info: { 
+            title: caption,
+            description: caption 
+          },
+          source_info: { 
+            source: 'PULL_FROM_URL', 
+            photo_cover_index: 1, 
+            photo_images: [mediaUrl] 
+          },
+          post_mode: 'MEDIA_UPLOAD',
+          media_type: 'PHOTO'
+        }),
+      });
+
+      const initData = await initRes.json();
+      if (initData.error?.code !== 'ok') {
+        return { success: false, message: initData.error?.message || 'TikTok photo init failed' };
+      }
+
+      return { success: true, message: `TikTok photo upload initiated! Publish ID: ${initData.data.publish_id}` };
+    }
+
+    return { success: false, message: 'TikTok only supports video and image uploads.' };
+
   } catch (e) {
     return { success: false, message: `TikTok error: ${String(e)}` };
   }
