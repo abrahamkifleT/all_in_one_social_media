@@ -157,17 +157,17 @@ async function postToTikTok(payload: PostPayload) {
     // VIDEO UPLOAD (Uses FILE_UPLOAD - no domain verification required)
     if (contentType === 'video') {
       // 1. Fetch media to get buffer and file size
-      let mediaBuffer: Buffer;
+      let mediaBuffer: Uint8Array;
       if (mediaUrl.startsWith('data:')) {
         const base64Data = mediaUrl.split(',')[1];
-        mediaBuffer = Buffer.from(base64Data, 'base64');
+        mediaBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
       } else {
         const fetchRes = await fetch(mediaUrl);
         if (!fetchRes.ok) throw new Error('Failed to download media for TikTok');
         const arrayBuffer = await fetchRes.arrayBuffer();
-        mediaBuffer = Buffer.from(arrayBuffer);
+        mediaBuffer = new Uint8Array(arrayBuffer);
       }
-      const fileSize = mediaBuffer.length;
+      const fileSize = mediaBuffer.byteLength;
 
       // 2. Initialize upload
       const initRes = await fetch('https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', {
@@ -196,7 +196,7 @@ async function postToTikTok(payload: PostPayload) {
           'Content-Range': `bytes 0-${fileSize - 1}/${fileSize}`,
           'Content-Type': mediaMime || 'video/mp4',
         },
-        body: new Uint8Array(mediaBuffer),
+        body: mediaBuffer,
       });
 
       if (!uploadRes.ok) return { success: false, message: 'TikTok file upload failed' };
