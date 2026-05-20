@@ -35,7 +35,39 @@ export default function ComposePage() {
     if (!canPost) return;
     setIsPosting(true);
     setResults(null);
-    const apiKeys = getApiKeys(email);
+    
+    let apiKeys = getApiKeys(email);
+
+    // Silently refresh TikTok token if expired or expiring (within a 5-minute buffer)
+    if (platforms.includes('tiktok') && apiKeys.tiktok_refresh_token && apiKeys.tiktok_client_key && apiKeys.tiktok_client_secret) {
+      const isExpired = !apiKeys.tiktok_expires_at || (apiKeys.tiktok_expires_at - Date.now() < 5 * 60 * 1000);
+      if (isExpired) {
+        try {
+          const refreshRes = await fetch('/api/auth/tiktok/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              refresh_token: apiKeys.tiktok_refresh_token,
+              client_key: apiKeys.tiktok_client_key,
+              client_secret: apiKeys.tiktok_client_secret,
+            }),
+          });
+          const refreshData = await refreshRes.json();
+          if (refreshRes.ok && refreshData.success) {
+            apiKeys = {
+              ...apiKeys,
+              tiktok: refreshData.access_token,
+              tiktok_refresh_token: refreshData.refresh_token,
+              tiktok_expires_at: Date.now() + refreshData.expires_in * 1000,
+            };
+            saveApiKeys(apiKeys, email);
+          }
+        } catch (e) {
+          console.error('Failed to silently refresh TikTok token:', e);
+        }
+      }
+    }
+
     const postResults: { platform: string; success: boolean; message: string }[] = [];
 
     for (const pid of platforms) {

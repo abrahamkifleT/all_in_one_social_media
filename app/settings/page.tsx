@@ -47,7 +47,8 @@ const PLATFORM_CONFIGS: PlatformConfig[] = [
     docsUrl:'https://developers.tiktok.com/doc/login-kit-web',
     fields:[
       { key:'tiktok_client_key', label:'Client Key', placeholder:'awxxxxxxxxxxxxxxxx', hint:'From TikTok Developer Portal → My Apps → App Detail' },
-      { key:'tiktok', label:'Access Token', placeholder:'act.xxxxxx...', hint:'Obtained via TikTok OAuth flow' },
+      { key:'tiktok_client_secret', label:'Client Secret', placeholder:'sbxxxxxxxxxxxxxxxx', hint:'From TikTok Developer Portal → My Apps → App Detail' },
+      { key:'tiktok', label:'Access Token', placeholder:'act.xxxxxx...', hint:'Obtained via TikTok OAuth flow (or automatically connected below)' },
     ],
   },
   {
@@ -77,10 +78,93 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('facebook');
+  
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [connectSuccess, setConnectSuccess] = useState<string | null>(null);
+  const [hasProcessedCallback, setHasProcessedCallback] = useState(false);
 
   useEffect(() => {
     setKeys(getApiKeys(email));
   }, [email]);
+
+  const handleTikTokConnect = () => {
+    const clientKey = keys.tiktok_client_key;
+    if (!clientKey) {
+      setConnectError('Please enter and save your TikTok Client Key first.');
+      return;
+    }
+    setConnectError(null);
+    setConnectSuccess(null);
+    const redirectUri = encodeURIComponent(window.location.origin + '/settings');
+    const state = Math.random().toString(36).substring(2, 15);
+    
+    // Redirect to TikTok authorize page
+    const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=user.info.basic,video.publish&response_type=code&redirect_uri=${redirectUri}&state=${state}`;
+    window.location.href = authUrl;
+  };
+
+  const handleTikTokCallback = async (code: string) => {
+    setIsConnecting(true);
+    setConnectError(null);
+    setConnectSuccess(null);
+
+    const clientKey = keys.tiktok_client_key;
+    const clientSecret = keys.tiktok_client_secret;
+
+    if (!clientKey || !clientSecret) {
+      setConnectError('Missing Client Key or Client Secret. Please save them first.');
+      setIsConnecting(false);
+      return;
+    }
+
+    try {
+      const redirectUri = window.location.origin + '/settings';
+      const res = await fetch('/api/auth/tiktok/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          client_key: clientKey,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Token exchange failed');
+      }
+
+      // Update state and save
+      const updatedKeys = {
+        ...keys,
+        tiktok: data.access_token,
+        tiktok_refresh_token: data.refresh_token,
+        tiktok_expires_at: Date.now() + data.expires_in * 1000,
+      };
+      setKeys(updatedKeys);
+      saveApiKeys(updatedKeys, email);
+      setConnectSuccess('TikTok account connected successfully!');
+      
+      // Clear URL query parameters
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : 'Failed to connect TikTok.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code && keys.tiktok_client_key && !hasProcessedCallback && !isConnecting) {
+      setHasProcessedCallback(true);
+      handleTikTokCallback(code);
+    }
+  }, [keys.tiktok_client_key, hasProcessedCallback]);
 
   const handleSave = () => {
     saveApiKeys(keys, email);
@@ -134,7 +218,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Platform key form (right) */}
-        <div className="glass fade-in" style={{ padding:28 }}>
+        <div className="glass fade-in" style={{ padding: 28 }}>
+          {isConnecting && (
+            <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(105, 201, 208, 0.08)', border: '1px solid rgba(105, 201, 208, 0.25)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(105, 201, 208, 0.4)', borderTopColor: '#69C9D0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#69C9D0' }}>Exchanging TikTok authorization code... Please wait.</div>
+            </div>
+          )}
+
           <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24, paddingBottom:20, borderBottom:'1px solid var(--border)' }}>
             <div style={{ width:48, height:48, borderRadius:14, background:`${activePlatform.color}18`, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill={activePlatform.color}><path d={PLATFORM_SVG_PATHS[activePlatform.id]} /></svg>
@@ -174,6 +265,41 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+
+          {activePlatform.id === 'tiktok' && (
+            <div style={{ marginTop: 24, padding: '18px', borderRadius: 12, background: 'rgba(105, 201, 208, 0.06)', border: '1px solid rgba(105, 201, 208, 0.25)', marginBottom: 20 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: '#69C9D0', marginBottom: 6 }}>TikTok Account Connection</div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+                First, save your <strong>Client Key</strong> and <strong>Client Secret</strong>. Then click the button below to authorize this app on your TikTok account.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  className="btn-primary"
+                  onClick={handleTikTokConnect}
+                  disabled={isConnecting || !keys.tiktok_client_key || !keys.tiktok_client_secret}
+                  style={{ background: 'linear-gradient(135deg, #69C9D0, #00f2fe)', color: '#000', fontWeight: 700, border: 'none' }}
+                >
+                  {isConnecting ? 'Connecting...' : keys.tiktok ? '🔄 Reconnect TikTok Account' : '🔗 Connect TikTok Account'}
+                </button>
+                {keys.tiktok_expires_at && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Token expires: {new Date(keys.tiktok_expires_at).toLocaleString()}
+                  </div>
+                )}
+              </div>
+              
+              {connectSuccess && (
+                <div style={{ color: '#10b981', fontSize: 13, marginTop: 12, fontWeight: 500 }}>
+                  ✅ {connectSuccess}
+                </div>
+              )}
+              {connectError && (
+                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 12, fontWeight: 500 }}>
+                  ❌ {connectError}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* How to get keys guide */}
           <div style={{ marginTop:28, padding:18, borderRadius:12, background:'var(--bg-elevated)', border:'1px solid var(--border)' }}>

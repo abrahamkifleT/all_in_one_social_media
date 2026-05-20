@@ -25,6 +25,9 @@ export interface ApiKeys {
   youtube?: string;
   tiktok?: string;
   tiktok_client_key?: string;
+  tiktok_client_secret?: string;
+  tiktok_refresh_token?: string;
+  tiktok_expires_at?: number;
   linkedin?: string;
   linkedin_urn?: string;
   x?: string;
